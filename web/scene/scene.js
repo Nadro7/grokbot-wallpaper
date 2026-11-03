@@ -45,7 +45,7 @@ const clock = new THREE.Clock();
 const cam = {
   x: new Spring(HOME.x, 0.45), y: new Spring(HOME.y, 0.55), z: new Spring(HOME.z, 0.45), zoom: new Spring(0, 0.4),   // zoom is ln(zoom)
 };
-let hoveredId = null, pointerDirty = false, drag = null;
+let hoveredId = null, pointerDirty = false, drag = null, hoverClearTimer = null;
 const touches = new Map();
 let pinch = null;
 let introDone = false, switchedAt = 0, nowSec = 0, settledOnce = false;
@@ -441,6 +441,21 @@ function pick() {
 }
 
 function setHover(id) {
+  if (id) {
+    if (hoverClearTimer) { clearTimeout(hoverClearTimer); hoverClearTimer = null; }
+    applyHover(id);
+    return;
+  }
+  // Keep the tip while the pointer moves onto clickable pending links in the CSS2D tag.
+  if (hoverClearTimer) clearTimeout(hoverClearTimer);
+  hoverClearTimer = setTimeout(() => {
+    hoverClearTimer = null;
+    if (document.querySelector('.hqt.has-items:hover')) return;
+    applyHover(null);
+  }, 180);
+}
+
+function applyHover(id) {
   if (id === hoveredId) return;
   if (hoveredId) actors.get(hoveredId)?.setHovered(false);
   hoveredId = id;

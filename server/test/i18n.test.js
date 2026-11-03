@@ -18,5 +18,8 @@ test('t: switches with setLang', () => {
   setLang('fr');
   assert.equal(t('open_chat'), 'Ouvrir le chat');
   assert.equal(t('pending_tasks'), 'Tâches');
+  assert.equal(t('pending_actions'), 'Tâches à faire');
   assert.equal(getLang(), 'fr');
+  setLang('en');
+  assert.equal(t('pending_actions'), 'Tasks to do');
 });

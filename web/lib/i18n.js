@@ -56,6 +56,8 @@ const DICT = {
     due_now: 'due now', in_prefix: 'in ',
     worked_unreported: 'Worked (unreported)', never_reported: 'never reported', seen_prefix: 'seen ',
     pending_tasks: 'Tasks', pending_mails: 'Pending mail', pending_due: 'Next due', pending_sep: ': ',
+    pending_actions: 'Tasks to do', copy_link: 'Copy', link_copied: 'Copied',
+    chat_fallback: 'If chat does not open, copy this link and open it in your browser:',
     // face
     face_all_bots: 'All bots', face_limit: 'limit', face_limit_title: 'Weekly usage limit',
     face_waiting_for_you: 'waiting for you', face_resting: 'resting',
@@ -126,6 +128,8 @@ const DICT = {
     due_now: 'échéance maintenant', in_prefix: 'dans ',
     worked_unreported: 'A travaillé (non signalé)', never_reported: 'jamais signalé', seen_prefix: 'vu ',
     pending_tasks: 'Tâches', pending_mails: 'Mails en attente', pending_due: 'Prochaine échéance', pending_sep: ' : ',
+    pending_actions: 'Tâches à faire', copy_link: 'Copier', link_copied: 'Copié',
+    chat_fallback: 'Si le chat ne s’ouvre pas, copiez ce lien et ouvrez-le dans le navigateur :',
     face_all_bots: 'Tous les bots', face_limit: 'limite', face_limit_title: 'Limite d’usage hebdomadaire',
     face_waiting_for_you: 'en attente de vous', face_resting: 'au repos',
     face_needs_reply: 'attend votre réponse', face_stuck_look: 'bloqué, jetez un œil',

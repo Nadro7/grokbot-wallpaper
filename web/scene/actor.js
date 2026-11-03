@@ -4,7 +4,8 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Spring, REDUCED, clamp, smoothstep } from './spring.js';
-import { formatPendingTip } from '../lib/pending.js';
+import { formatPendingTip, resolveItemUrl } from '../lib/pending.js';
+import { openAppLink } from '../lib/openlink.js';
 import { statusChip } from '../lib/i18n.js';
 
 export const STATUS_COLOR = {
@@ -73,8 +74,16 @@ export class Actor {
     this.tagEl = document.createElement('div');
     this.tagEl.className = 'hqt';
     this.tagEl.dataset.mode = 'off';
-    this.tagEl.innerHTML = '<div class="hqt-pill"><i class="hqt-dot"></i><span class="hqt-text"></span></div><div class="hqt-stem"></div>';
+    this.tagEl.innerHTML = '<div class="hqt-pill"><i class="hqt-dot"></i><span class="hqt-text"></span></div><ul class="hqt-items" hidden></ul><div class="hqt-stem"></div>';
     this.tagText = this.tagEl.querySelector('.hqt-text');
+    this.tagItems = this.tagEl.querySelector('.hqt-items');
+    this.tagItems.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openAppLink(a.getAttribute('href'));
+    });
     this.tag = new CSS2DObject(this.tagEl);
     this.tag.center.set(0.5, 0);
     this.tag.position.y = MODEL_HEIGHT + 0.24;
@@ -166,13 +175,15 @@ export class Actor {
   }
 
   // Quiet by default: selected (dark pill, name), needs-the-user (compact pill, short reason),
-  // hovered (pill, name, or pending counters when a pending line was posted).
+  // hovered (pill, name, or pending counters / clickable task links when a pending line was posted).
   renderTag() {
     const s = this.status, bot = this.bot;
     if (!bot) return;
     const attn = s === 'waiting_user' || s === 'error' || s === 'stuck';
     const mode = this.selected ? 'sel' : attn ? 'attn' : this.hovered ? 'hover' : 'off';
     const pendingTip = formatPendingTip(bot.pending);
+    const items = (bot.pending && Array.isArray(bot.pending.items)) ? bot.pending.items : [];
+    const showItems = (mode === 'hover' || mode === 'sel') && items.length > 0;
     let text = bot.name || '';
     if (mode === 'attn') {
       const reason = reasonText(s, bot.step);
@@ -180,12 +191,33 @@ export class Actor {
     } else if (mode === 'hover' && pendingTip) {
       text = pendingTip;
     }
-    const key = `${mode}|${s}|${text}|${pendingTip}`;
+    const itemsKey = items.map((it) => (it.title || '') + '>' + (it.url || '')).join('|');
+    const key = `${mode}|${s}|${text}|${pendingTip}|${itemsKey}|${bot.chat_url || ''}`;
     if (key === this.tagKey) return;
     this.tagKey = key;
     this.tagEl.dataset.mode = mode;
+    this.tagEl.classList.toggle('has-items', showItems);
     this.tagText.textContent = text;
-    this.tagEl.title = pendingTip && mode !== 'hover' ? pendingTip : '';
+    this.tagEl.title = pendingTip && mode !== 'hover' && !showItems ? pendingTip : '';
+    this.tagItems.hidden = !showItems;
+    if (showItems) {
+      this.tagItems.textContent = '';
+      for (const it of items) {
+        const href = resolveItemUrl(it, bot.chat_url);
+        const li = document.createElement('li');
+        if (href) {
+          const a = document.createElement('a');
+          a.href = href;
+          a.textContent = it.title;
+          a.rel = 'noopener noreferrer';
+          if (/^https:/i.test(href)) a.target = '_blank';
+          li.appendChild(a);
+        } else {
+          li.textContent = it.title;
+        }
+        this.tagItems.appendChild(li);
+      }
+    }
   }
 
   spotIsLounge() { return !!this.spot && this.spot.lounge; }

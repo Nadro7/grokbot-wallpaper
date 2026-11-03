@@ -33,14 +33,14 @@ One JSON object per POST, at most 4 KB.
 {"type":"usage","total_used_pct":37,"resets_at":"2026-11-01T18:00:00+02:00","bots":{"X Writer":4.1}}
 {"chat":{"X Writer":"grokbot://app/v1/agent?id=<bot id>"}}
 {"routines":{"bot":"X Writer","items":[{"name":"Morning thread","schedule":"daily 09:00","next_run":"2026-11-02T09:00:00+02:00"}]}}
-{"pending":{"bot":"X Writer","tasks":3,"mails":2,"next_due":"2026-11-05","note":"optional, max 60 chars"}}
+{"pending":{"bot":"X Writer","tasks":3,"mails":2,"next_due":"2026-11-05","note":"optional, max 60 chars","items":[{"title":"Draft reply","url":"https://mail.google.com/mail/u/0/#drafts/Abc"}]}}
 ```
 
 - **status**, posted on every status change of any bot. `bot` is the exact name, `status` is one of `working`, `idle`, `waiting_user`, `error`, `done`, `step` is what the bot does, at most 80 characters. `group` (optional) is the bot's team: each team gets its own floor of the office.
 - **roster**: the exact names of all your bots, so quiet bots show up too. Re-posted every morning.
 - **looks**: one look per bot. `shape` is one of `sphere`, `rounded_cube`, `pill`, `triangle`, `cone`, `pentagon`, `hexagon`, `star4`, `star6`, `clover`, `rounded_square`, `trio`. `accessory` is one of `none`, `glasses`, `stem`, `antenna`, `bow`. `color` is `#RRGGBB`. Details in `docs/AVATARS.md`. Re-posted every morning.
 - **usage**: total used in percent, when it resets, and per bot. Fields the bot does not know are left out. Posted every 2 hours.
-- **pending**: neutral counters only (task count, waiting mail count, next due date as `YYYY-MM-DD`, optional short `note`). The last line per bot is kept. On hover in the office and the wallpaper, a tip shows e.g. `Tasks: 3 · Pending mail: 2 · Next due: 05/11` (French labels when the browser language is French). Do not put personal content, secrets, people names or private notes in this line — only the counters.
+- **pending**: neutral counters (task count, waiting mail count, next due date as `YYYY-MM-DD`, optional short `note`) plus optional `items` (up to 5 `{title, url}`). `title` is at most 60 characters; `url` may be `https:` or `grokbot:` (otherwise the tip falls back to the bot's chat link). The last line per bot is kept. Hovering an avatar in the office or wallpaper shows the counters and the clickable tasks; clicking the avatar opens the bot's chat (`grokbot://…`, from a prior `chat` line). In Lively, custom schemes may not open — the wallpaper then shows a copyable link. Do not put personal content, secrets, people names or private notes in this line — only short task titles and links (a Gmail draft URL contains an id, not the mail body).
 
 ### Privacy
 

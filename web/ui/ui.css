@@ -370,10 +370,21 @@
   display: flex; align-items: center; justify-content: center; gap: 8px; font: 900 14px/1 var(--bhq-round); text-align: center;
   box-shadow: inset 0 1px 0 #fff, 0 4px 12px rgba(0, 0, 0, .28);
   transition: transform .3s var(--bhq-spring), filter .2s, background-color .2s;
+  text-decoration: none; box-sizing: border-box;
 }
-.bhq-cta:not(:disabled):hover { filter: brightness(1.05); }
-.bhq-cta:not(:disabled):active { transform: scale(.97); }
-.bhq-cta:disabled { background: rgba(255, 255, 255, .1); color: var(--dim); box-shadow: none; }
+.bhq-cta:not(.is-disabled):hover { filter: brightness(1.05); }
+.bhq-cta:not(.is-disabled):active { transform: scale(.97); }
+.bhq-cta.is-disabled, .bhq-cta:disabled { background: rgba(255, 255, 255, .1); color: var(--dim); box-shadow: none; pointer-events: none; }
+.bhq-pendblock { margin-top: 4px; }
+.bhq-pend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bhq-pend-tip { color: var(--muted); font-size: 12px; font-weight: 600; }
+.bhq-pend-item { margin: 0; }
+.bhq-pend-link {
+  display: block; padding: 8px 10px; border-radius: 12px;
+  background: rgba(255, 255, 255, .06); color: var(--ink); text-decoration: none;
+  font-weight: 650; font-size: 12.5px; line-height: 1.3;
+}
+.bhq-pend-link:hover { background: rgba(255, 255, 255, .11); }
 
 /* ====================================================================== live feed */
 
@@ -801,7 +812,7 @@ html.bhq-phone body { overscroll-behavior: none; -webkit-tap-highlight-color: tr
   .bhq-member:hover .bhq-av-img { transform: none; }
   .bhq-member:is([data-s="waiting_user"], [data-s="stuck"], [data-s="error"]):hover { filter: none; }
   .bhq-wbtn:hover, .bhq-roff:hover { background: rgba(255, 255, 255, .16); }
-  .bhq-cta:not(:disabled):hover { filter: none; }
+  .bhq-cta:not(.is-disabled):hover { filter: none; }
   .bhq-eye[aria-pressed="true"]:hover { background: rgba(255, 255, 255, .14); }
 }
 

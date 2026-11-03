@@ -4,6 +4,9 @@
 // else /api/state (the journal server); with neither, only the bot and its sky, no cards. ?demo=1 animates the bundled
 // demo state instead. At most 30 frames per second.
 
+import { parsePending, formatPendingTip, resolveItemUrl } from '../lib/pending.js';
+import { openAppLink, copyText, isAllowedAppUrl } from '../lib/openlink.js';
+
 const STATUS_EN = {
   working: { text: 'working', c: 'var(--working)' },
   waiting_user: { text: 'waiting for you', c: 'var(--waiting)' },
@@ -414,23 +417,124 @@ function countTo(el, to) {                               // numbers roll to thei
   setTimeout(() => { if (Number(el.dataset.v) === to) el.textContent = to; }, dur + 120);
 }
 
-// hover an avatar: its name, status and what it is doing now; while the cursor is on the cards, Grok Bot's eyes widen
+// hover an avatar: name, status, pending counters and clickable task links
+function fillTip(b) {
+  tip.textContent = '';
+  tip.append(Object.assign(document.createElement('b'), { textContent: b.name }));
+  tip.append(Object.assign(document.createElement('span'), { textContent: STATUS[statusOf(b)].text }));
+  if (b.step) tip.append(Object.assign(document.createElement('p'), { textContent: b.step }));
+  const pend = formatPendingTip(b.pending, LANG);
+  if (pend) tip.append(Object.assign(document.createElement('p'), { textContent: pend }));
+  const items = (b.pending && Array.isArray(b.pending.items)) ? b.pending.items : [];
+  if (items.length) {
+    const ul = document.createElement('ul');
+    ul.className = 'tip-items';
+    for (const it of items) {
+      const li = document.createElement('li');
+      const href = resolveItemUrl(it, b.chat_url);
+      if (href) {
+        const a = document.createElement('a');
+        a.href = href;
+        a.textContent = it.title;
+        a.rel = 'noopener noreferrer';
+        if (/^https:/i.test(href)) a.target = '_blank';
+        a.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          openBotLink(href);
+        });
+        li.append(a);
+      } else {
+        li.textContent = it.title;
+      }
+      ul.append(li);
+    }
+    tip.append(ul);
+  }
+  tip.classList.toggle('has-items', items.length > 0);
+  tip.hidden = false;
+}
+function placeTip(anchor) {
+  const r = anchor.getBoundingClientRect(), t = tip.getBoundingClientRect();
+  const x = Math.min(innerWidth - t.width - 8, Math.max(8, r.left + r.width / 2 - t.width / 2));
+  const y = r.top - t.height - 8 > 8 ? r.top - t.height - 8 : r.bottom + 8;
+  Object.assign(tip.style, { left: `${x}px`, top: `${y}px` });
+}
+let tipAnchor = null;
 stack.addEventListener('pointerover', (e) => {
   const av = e.target.closest('.av');
   if (!av || drag) return;
   const b = byId[av.dataset.id];
   if (!b) return;
-  const pend = formatPendingTip(b.pending);
-  tip.innerHTML = `<b>${esc(b.name)}</b><span>${STATUS[statusOf(b)].text}</span>${b.step ? `<p>${esc(b.step)}</p>` : ''}${pend ? `<p>${esc(pend)}</p>` : ''}`;
-  tip.hidden = false;
-  const r = av.getBoundingClientRect(), t = tip.getBoundingClientRect();
-  const x = Math.min(innerWidth - t.width - 8, Math.max(8, r.left + r.width / 2 - t.width / 2));
-  const y = r.top - t.height - 8 > 8 ? r.top - t.height - 8 : r.bottom + 8;
-  Object.assign(tip.style, { left: `${x}px`, top: `${y}px` });
+  tipAnchor = av;
+  fillTip(b);
+  placeTip(av);
 });
-stack.addEventListener('pointerout', (e) => { if (!e.relatedTarget?.closest?.('.av')) tip.hidden = true; });
+stack.addEventListener('pointerout', (e) => {
+  const to = e.relatedTarget;
+  if (to?.closest?.('.av') || to?.closest?.('.tip')) return;
+  tip.hidden = true;
+  tipAnchor = null;
+});
+tip.addEventListener('pointerleave', (e) => {
+  if (e.relatedTarget?.closest?.('.av') || e.relatedTarget?.closest?.('.tip')) return;
+  tip.hidden = true;
+  tipAnchor = null;
+});
 stack.addEventListener('pointerenter', () => { attention = true; });
 stack.addEventListener('pointerleave', () => { attention = false; });
+
+// Open grokbot:// / https; on wallpaper hosts that block custom schemes, show a copy toast.
+async function openBotLink(url) {
+  const res = openAppLink(url);
+  if (!res.ok) return;
+  if (res.scheme !== 'grokbot') return;
+  // Lively and many webviews cannot hand off custom protocols: offer the link to copy.
+  showLinkToast(res.url);
+}
+function showLinkToast(url) {
+  let toast = document.getElementById('gbw-link-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'gbw-link-toast';
+    toast.className = 'link-toast';
+    toast.innerHTML = '<p class="link-toast__msg"></p><div class="link-toast__row"><code class="link-toast__url"></code><button type="button" class="link-toast__copy"></button></div>';
+    document.body.append(toast);
+    toast.querySelector('.link-toast__copy').addEventListener('click', async () => {
+      const u = toast.dataset.url || '';
+      const ok = await copyText(u);
+      toast.querySelector('.link-toast__copy').textContent = ok
+        ? (LANG === 'fr' ? 'Copié' : 'Copied')
+        : (LANG === 'fr' ? 'Échec' : 'Failed');
+    });
+  }
+  toast.dataset.url = url;
+  toast.querySelector('.link-toast__msg').textContent = LANG === 'fr'
+    ? 'Si le chat ne s’ouvre pas (Lively), copiez ce lien et ouvrez-le dans le navigateur :'
+    : 'If chat does not open (Lively), copy this link and open it in your browser:';
+  toast.querySelector('.link-toast__url').textContent = url;
+  toast.querySelector('.link-toast__copy').textContent = LANG === 'fr' ? 'Copier' : 'Copy';
+  toast.hidden = false;
+  clearTimeout(showLinkToast._t);
+  showLinkToast._t = setTimeout(() => { toast.hidden = true; }, 12000);
+}
+
+// Click an avatar (without dragging the stack) → open that bot's chat.
+let press = null;
+stack.addEventListener('pointerdown', (e) => {
+  const av = e.target.closest('.av, .need');
+  if (!av || e.button !== 0) { press = null; return; }
+  press = { id: av.dataset.id || av.dataset.bot, x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+}, true);
+stack.addEventListener('pointerup', (e) => {
+  if (!press || e.pointerId !== press.pointerId) return;
+  const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y);
+  const id = press.id;
+  press = null;
+  if (moved > 8) return;
+  const b = byId[id];
+  if (b?.chat_url) openBotLink(b.chat_url);
+}, true);
 
 // every ~20 s, if someone needs the user, Grok Bot looks at that bot for a moment
 setInterval(() => {
@@ -711,40 +815,6 @@ function botId(name) {
     .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/g, '');
   return SLUG_ALIASES[s] || s || `bot-${hash(String(name)).toString(36)}`;
 }
-function nonNegInt(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.min(9999, Math.floor(n));
-}
-function parsePending(raw) {                               // {"pending":{bot,tasks,mails,next_due,note?}}
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const name = typeof raw.bot === 'string' ? raw.bot.trim().slice(0, 80) : '';
-  if (!name) return null;
-  const tasks = nonNegInt(raw.tasks), mails = nonNegInt(raw.mails);
-  let next_due = null;
-  if (typeof raw.next_due === 'string') {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.next_due.trim());
-    if (m) next_due = `${m[1]}-${m[2]}-${m[3]}`;
-  }
-  const note = typeof raw.note === 'string' ? raw.note.trim().slice(0, 60) : '';
-  if (tasks == null && mails == null && !next_due && !note) return null;
-  return { bot: name, tasks: tasks ?? 0, mails: mails ?? 0, next_due, ...(note ? { note } : {}) };
-}
-function formatPendingTip(p) {                             // EN by default; FR when the browser is French
-  if (!p) return '';
-  const fr = LANG === 'fr';
-  const L = fr
-    ? { tasks: 'Tâches', mails: 'Mails en attente', due: 'Prochaine échéance', sep: ' : ' }
-    : { tasks: 'Tasks', mails: 'Pending mail', due: 'Next due', sep: ': ' };
-  const parts = [];
-  if (p.tasks != null) parts.push(`${L.tasks}${L.sep}${p.tasks}`);
-  if (p.mails != null) parts.push(`${L.mails}${L.sep}${p.mails}`);
-  if (p.next_due) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.next_due);
-    parts.push(`${L.due}${L.sep}${m ? `${m[3]}/${m[2]}` : p.next_due}`);
-  }
-  return parts.join(' · ');
-}
 function applyLine(text, time) {                         // a status, roster, looks, usage or pending line; false if none
   if (typeof text !== 'string' || text.length > 4096) return false;
   let ev;
@@ -763,6 +833,15 @@ function applyLine(text, time) {                         // a status, roster, lo
     for (const raw of ev.roster.slice(0, 200)) {
       const name = String(raw ?? '').trim().slice(0, 60), id = name && botId(name);
       if (id && !state.bots[id]) state.bots[id] = { id, name, step: '', status: 'idle', effective_status: 'idle', last_event: at };
+    }
+    return true;
+  }
+  if (ev?.chat && typeof ev.chat === 'object' && !Array.isArray(ev.chat)) {
+    for (const [name, url] of Object.entries(ev.chat).slice(0, 400)) {
+      if (typeof url !== 'string' || !isAllowedAppUrl(url.trim())) continue;
+      const id = botId(name), b = state.bots[id] || (state.bots[id] = { id, name: String(name).trim().slice(0, 60), step: '', status: 'idle', effective_status: 'idle', last_event: at });
+      b.chat_url = url.trim();
+      if (!b.name) b.name = String(name).trim().slice(0, 60);
     }
     return true;
   }

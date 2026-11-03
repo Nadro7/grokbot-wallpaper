@@ -26,6 +26,8 @@
  */
 
 import { t, getLang, statusLabel as i18nStatusLabel, statusChip, statusWord as i18nStatusWord, weekdayShort } from '../lib/i18n.js';
+import { formatPendingTip, resolveItemUrl } from '../lib/pending.js';
+import { openAppLink } from '../lib/openlink.js';
 
 // Resolved against this file, so it works from /web/index.html, from a server rooted at web/, and from the harness.
 const THUMB_BASE = new URL('../../assets/blobs/thumbs/', import.meta.url).href;
@@ -593,8 +595,14 @@ function buildPanel(root) {
 
   const body = watchFade(h('div', { class: 'bhq-card-body' }, taskBlock, stats, useBlock, stepsBlock));
 
-  const cta = h('button', { class: 'bhq-cta', type: 'button', text: t('open_chat'), disabled: true, title: t('no_chat') });
-  cta.addEventListener('click', () => {
+  const pendLabel = h('div', { class: 'bhq-label', text: t('pending_actions') });
+  const pendList = h('ul', { class: 'bhq-pend', role: 'list' });
+  const pendBlock = h('div', { class: 'bhq-pendblock', hidden: true }, pendLabel, pendList);
+  body.append(pendBlock);
+
+  const cta = h('a', { class: 'bhq-cta', href: '#', role: 'button', text: t('open_chat'), title: t('no_chat'), 'aria-disabled': 'true' });
+  cta.addEventListener('click', (e) => {
+    e.preventDefault();
     const b = U.last.state && U.last.state.bots && U.last.state.bots[U.cardBot];
     if (!b || !b.chat_url) return;
     openChat(b.id, b.chat_url);
@@ -610,14 +618,15 @@ function buildPanel(root) {
     root, team, tcard, teamHead: head, teamTitle, teamSub, teamBig: big, nWait, nErr, rowWait, rowErr, lErr, list, teamEmpty,
     card: {
       root: card, hero, body, av, name, where, status, stDot, stTxt, now, taskBlock, task,
-      sSteps, sTasks, sHours, usageLabel, useBlock, fuel, fillBar, shareNum, hist, histSig: null, cta, fresh: true,
+      sSteps, sTasks, sHours, usageLabel, useBlock, fuel, fillBar, shareNum, hist, histSig: null,
+      pendBlock, pendLabel, pendList, pendSig: null, cta, fresh: true,
     },
   };
 }
 
 function openChat(id, url) {
   if (U.h.onOpenChat) U.h.onOpenChat(id, url);
-  else window.location.href = url;
+  else openAppLink(url);
 }
 
 /* ------------------------------------------------------------------ build: feed + zoom */
@@ -1427,10 +1436,39 @@ function renderCard(state, bot) {
     for (const x of hist) c.hist.append(histRow(x));
   }
 
-  // chat button
+  // pending action links (items → url or chat)
+  const items = (bot.pending && Array.isArray(bot.pending.items)) ? bot.pending.items : [];
+  const tip = formatPendingTip(bot.pending);
+  setHidden(c.pendBlock, !items.length && !tip);
+  setText(c.pendLabel, t('pending_actions'));
+  // rebuild list only when signature changes
+  const pendSig = items.map((it) => (it.title || '') + '|' + (it.url || '')).join(';') + '#' + (bot.chat_url || '') + '#' + tip;
+  if (c.pendSig !== pendSig) {
+    c.pendSig = pendSig;
+    c.pendList.textContent = '';
+    if (tip) c.pendList.append(h('li', { class: 'bhq-pend-tip', text: tip }));
+    for (const it of items) {
+      const href = resolveItemUrl(it, bot.chat_url);
+      if (href) {
+        const a = h('a', { class: 'bhq-pend-link', href, text: it.title, rel: 'noopener noreferrer' });
+        if (/^https:/i.test(href)) a.target = '_blank';
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          openAppLink(href);
+        });
+        c.pendList.append(h('li', { class: 'bhq-pend-item' }, a));
+      } else {
+        c.pendList.append(h('li', { class: 'bhq-pend-item', text: it.title }));
+      }
+    }
+  }
+
+  // chat link (real <a>, opened via openAppLink for grokbot://)
   const has = !!bot.chat_url;
-  if (c.cta.disabled === has) c.cta.disabled = !has;
+  setAttr(c.cta, 'href', has ? bot.chat_url : '#');
+  setAttr(c.cta, 'aria-disabled', has ? null : 'true');
   setAttr(c.cta, 'title', has ? null : t('no_chat'));
+  setCls(c.cta, 'is-disabled', !has);
   c.fresh = false;
 }
 

@@ -16,7 +16,7 @@
 //   {"groups":{"Bot A":"Content"}}                                            teams, one floor each
 //   {"chat":{"Bot A":"grokbot://app/v1/agent?id=…"}}                         each bot's chat, for «Open chat»
 //   {"routines":{"bot":"Bot A","items":[{"name":"…","schedule":"…","next_run":"ISO"}]}}   a bot's routines
-//   {"pending":{"bot":"Bot A","tasks":3,"mails":2,"next_due":"YYYY-MM-DD","note":"…"}}  hover counters
+//   {"pending":{"bot":"Bot A","tasks":3,"mails":2,"next_due":"YYYY-MM-DD","note":"…","items":[{"title":"…","url":"https://…"}]}}  hover + clickable tasks
 //   {"check":{"bots":["Bot A","Bot B"]}}                                     the setup bot starts a status check
 // On top of the server's state the office gets state.finished (done lines of the last 24 h, newest first),
 // state.routines (every bot's routines, soonest first) and state.check (the latest status check: who has answered), for

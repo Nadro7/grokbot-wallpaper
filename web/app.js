@@ -4,6 +4,7 @@
 import { initScene, renderScene, zoom, focusBot } from './scene/scene.js';
 import { initSound, sfx } from './audio/sound.js';
 import { resolveLang, setLang } from './lib/i18n.js';
+import { openAppLink } from './lib/openlink.js';
 
 const POLL_MS = 1000;
 const view = { currentFloor: null, selectedBot: null };
@@ -31,16 +32,21 @@ initScene(document.getElementById('scene'), {
 });
 
 ui.initUI({
-  onSelectBot: (id) => select(id),
+  onSelectBot: (id) => { select(id); openChatFor(id); },
   onSelectFloor: (id) => setFloor(id),
   onZoom: (dir) => { zoom(dir); sfx.zoom(dir); },
-  onOpenChat: (id, url) => { if (url) location.href = url; },
+  onOpenChat: (_id, url) => { if (url) openAppLink(url); },
 });
 
 // music and sound effects (not on the wallpaper): the speaker button sits in the top bar's right group
 if (!WALLPAPER) initSound({ slot: document.querySelector('#topbar .bhq-right') });
 
 addEventListener('keydown', (e) => { if (e.key === 'Escape') select(null); });
+
+function openChatFor(id) {
+  const bot = id && state?.bots?.[id];
+  if (bot?.chat_url) openAppLink(bot.chat_url);
+}
 
 function select(id) {
   const before = view.selectedBot;
