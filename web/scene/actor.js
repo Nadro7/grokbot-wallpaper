@@ -4,11 +4,13 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Spring, REDUCED, clamp, smoothstep } from './spring.js';
+import { formatPendingTip } from '../lib/pending.js';
+import { statusChip } from '../lib/i18n.js';
 
 export const STATUS_COLOR = {
   working: '#34C759', idle: '#A1A1A6', waiting_user: '#FF9F0A', error: '#FF3B30', stuck: '#FF9500', done: '#0A84FF',
 };
-const STATUS_LABEL = { waiting_user: 'Waiting for you', error: 'Error', stuck: 'Stuck?', done: 'Done', working: 'Working', idle: 'Resting' };
+const STATUS_LABEL = new Proxy({}, { get: (_, s) => (s === 'stuck' ? statusChip('stuck') + '?' : statusChip(s)) });
 const CAMERA_YAW = Math.PI / 4;     // isometric camera sits on +X +Z
 const RESTING_TURN = 0.42;          // blobs lean toward the camera a bit
 const MODEL_HEIGHT = 1.0;
@@ -163,23 +165,27 @@ export class Actor {
     }
   }
 
-  // Quiet by default: selected (dark pill, name), needs-the-user (compact pill, short reason), hovered (pill, name).
+  // Quiet by default: selected (dark pill, name), needs-the-user (compact pill, short reason),
+  // hovered (pill, name, or pending counters when a pending line was posted).
   renderTag() {
     const s = this.status, bot = this.bot;
     if (!bot) return;
     const attn = s === 'waiting_user' || s === 'error' || s === 'stuck';
     const mode = this.selected ? 'sel' : attn ? 'attn' : this.hovered ? 'hover' : 'off';
+    const pendingTip = formatPendingTip(bot.pending);
     let text = bot.name || '';
     if (mode === 'attn') {
       const reason = reasonText(s, bot.step);
       text = this.hovered ? `${bot.name} · ${reason}` : reason;
+    } else if (mode === 'hover' && pendingTip) {
+      text = pendingTip;
     }
-    const key = `${mode}|${s}|${text}`;
+    const key = `${mode}|${s}|${text}|${pendingTip}`;
     if (key === this.tagKey) return;
     this.tagKey = key;
     this.tagEl.dataset.mode = mode;
     this.tagText.textContent = text;
-    this.tagEl.title = '';
+    this.tagEl.title = pendingTip && mode !== 'hover' ? pendingTip : '';
   }
 
   spotIsLounge() { return !!this.spot && this.spot.lounge; }

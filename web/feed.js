@@ -16,12 +16,14 @@
 //   {"groups":{"Bot A":"Content"}}                                            teams, one floor each
 //   {"chat":{"Bot A":"grokbot://app/v1/agent?id=…"}}                         each bot's chat, for «Open chat»
 //   {"routines":{"bot":"Bot A","items":[{"name":"…","schedule":"…","next_run":"ISO"}]}}   a bot's routines
+//   {"pending":{"bot":"Bot A","tasks":3,"mails":2,"next_due":"YYYY-MM-DD","note":"…"}}  hover counters
 //   {"check":{"bots":["Bot A","Bot B"]}}                                     the setup bot starts a status check
 // On top of the server's state the office gets state.finished (done lines of the last 24 h, newest first),
 // state.routines (every bot's routines, soonest first) and state.check (the latest status check: who has answered), for
 // the «Finished», «Routines» and «Status check» panels.
 import { StateStore, botIdFor } from './lib/state.js';
 import { FEED_BASE, feedFromLink } from './lib/feedbase.js';
+import { parsePending } from './lib/pending.js';
 
 const RELAY = 'https://relay.0xcodila.com', NTFY = 'https://ntfy.sh';
 const MAX_LINE = 4096, KEEP = 600, TICK_MS = 30e3, DAY_MS = 24 * 3600e3, PING_MS = 60e3;
@@ -48,6 +50,7 @@ export async function connectFeed({ topic, servers }, onState) {
   const store = new StateStore({ tz, quietIdleMs: QUIET_MS, hasAvatar: (id) => HANDMADE.has(id) });   // no GLB probe: every bot is generated from its look
   const cfg = {};                                        // per bot name: { look, chat_url } -> the store's bots config
   const routines = new Map();                            // bot id -> { name, items }
+  const pending = new Map();                             // bot id -> last pending counters (hover tip)
   let check = null;                                      // the latest status check: { ms, names }
   let lines = [], saveTimer = 0;
   const seen = new Set();
@@ -166,6 +169,12 @@ export async function connectFeed({ topic, servers }, onState) {
       routines.set(botIdFor(name), { name, items });      // a bot's latest list replaces its previous one
       return true;
     }
+    if (isMap(rec.pending)) {                             // last pending counters per bot → hover tip
+      const p = parsePending(rec.pending);
+      if (!p) return false;
+      pending.set(botIdFor(p.bot), p);
+      return true;
+    }
     if (isMap(rec.check)) {                              // the setup bot asks every bot for a status line: who answers?
       const names = (Array.isArray(rec.check.bots) ? rec.check.bots : []).filter((n) => typeof n === 'string' && n.trim())
         .slice(0, 400).map((n) => n.trim().slice(0, 80));
@@ -198,6 +207,9 @@ export async function connectFeed({ topic, servers }, onState) {
         return { id, name, at: seen >= check.ms ? new Date(seen).toISOString() : null };
       }),
     } : null;
+    for (const [id, p] of pending) {
+      if (s.bots[id]) s.bots[id].pending = p;
+    }
     return s;
   }
   function publish() { store.commit(); onState(extras(store.snapshot())); }

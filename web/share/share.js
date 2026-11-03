@@ -11,6 +11,7 @@
 // Esc, a click outside or the button again close it.
 import { captureScene } from '../scene/scene.js';
 import { sfx } from '../audio/sound.js';
+import { t, getLang } from '../lib/i18n.js';
 
 const W = 1600, H = 900;
 const SUPERSAMPLE = 1.5;                               // desktop only: phones render at 1x (GPU memory)
@@ -158,20 +159,20 @@ const coarse = () => matchMedia('(pointer: coarse)').matches;
 const canCopy = () => !!(navigator.clipboard?.write && window.ClipboardItem);
 
 function build() {
-  const close_ = h('button', { class: 'bhq-shr-x', type: 'button', 'aria-label': 'Close', title: 'Close (Esc)' });
+  const close_ = h('button', { class: 'bhq-shr-x', type: 'button', 'aria-label': t('close'), title: t('close_esc') });
   close_.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
-  const img = h('img', { alt: 'Your office, ready to post', draggable: 'false' });
-  const wait = h('span', { class: 'bhq-shr-wait', text: 'Framing your office…' });
+  const img = h('img', { alt: t('your_office_alt'), draggable: 'false' });
+  const wait = h('span', { class: 'bhq-shr-wait', text: t('framing') });
   const pic = h('div', { class: 'bhq-shr-img' }, img, wait);
   const btn = (label, cls = '') => h('button', { class: `bhq-shr-btn ${cls}`.trim(), type: 'button', text: label, disabled: true });
-  const share = btn('Share…', 'bhq-shr-btn--main');
-  const copy = btn('Copy image');
-  const save = btn('Download');
-  const post = btn('Post on X', 'bhq-shr-btn--main');
+  const share = btn(t('share_ellipsis'), 'bhq-shr-btn--main');
+  const copy = btn(t('copy_image'));
+  const save = btn(t('download'));
+  const post = btn(t('post_on_x'), 'bhq-shr-btn--main');
   const acts = h('div', { class: 'bhq-shr-acts' });
   const note = h('p', { class: 'bhq-shr-note', role: 'status', 'aria-live': 'polite' });
-  const root = h('div', { class: 'bhq-shr bhq-surface', role: 'dialog', 'aria-label': 'Share your office', tabindex: '-1', hidden: true },
-    h('div', { class: 'bhq-shr-head' }, h('b', { class: 'bhq-shr-title', text: 'Share your office' }), close_),
+  const root = h('div', { class: 'bhq-shr bhq-surface', role: 'dialog', 'aria-label': t('share_dialog'), tabindex: '-1', hidden: true },
+    h('div', { class: 'bhq-shr-head' }, h('b', { class: 'bhq-shr-title', text: t('share_dialog') }), close_),
     pic, acts, note);
   document.body.append(root);
   C = { root, img, pic, wait, acts, note, share, copy, save, post, blob: null, url: null, file: null, anchor: null, state: null };
@@ -199,11 +200,11 @@ function open() {
   const phone = coarse() && typeof navigator.canShare === 'function';
   root.classList.toggle('bhq-shr--phone', innerWidth <= 600);
   C.acts.replaceChildren(...(phone ? [C.share, C.save] : canCopy() ? [C.copy, C.save, C.post] : [C.save, C.post]));
-  setNote(phone ? '' : canCopy() ? `Post on X copies the image: paste it with ${MAC ? '⌘V' : 'Ctrl V'}.` : '');
+  setNote(phone ? '' : canCopy() ? t(MAC ? 'share_note_mac' : 'share_note_win') : '');
   for (const b of [C.share, C.copy, C.save, C.post]) b.disabled = true;
   C.pic.classList.remove('is-ready');
   C.wait.hidden = false;
-  C.wait.textContent = 'Framing your office…';
+  C.wait.textContent = t('framing');
   root.hidden = false;
   place();
   C.anchor?.setAttribute('aria-expanded', 'true');
@@ -217,7 +218,7 @@ function open() {
     let blob = null;
     try { blob = await makeShareImage(C.state); } catch (err) { console.warn('[share]', err); }
     if (id !== job) return;
-    if (!blob) { C.wait.textContent = 'The office is still loading. Try again in a moment.'; return; }
+    if (!blob) { C.wait.textContent = t('still_loading'); return; }
     if (C.url) URL.revokeObjectURL(C.url);
     C.blob = blob;
     C.url = URL.createObjectURL(blob);
@@ -262,7 +263,7 @@ async function copyBlob() {
 
 async function onCopy() {
   const ok = await copyBlob();
-  setNote(ok ? 'Copied. Paste it anywhere.' : 'Copying is blocked here. Use Download instead.');
+  setNote(ok ? t('copied_paste') : t('copy_blocked'));
   if (ok) sfx.tick();
 }
 
@@ -280,7 +281,7 @@ async function onPost() {
   // no link: the site's front page is not the dashboard's, and the page's own address carries the user's topic
   const q = new URLSearchParams({ text: POST_TEXT });
   window.open(`https://x.com/intent/post?${q}`, '_blank', 'noopener');
-  setNote(ok ? `Image copied. In the post, paste it with ${MAC ? '⌘V' : 'Ctrl V'}.` : 'Download the image, then add it to your post.');
+  setNote(ok ? t(MAC ? 'image_copied_mac' : 'image_copied_win') : t('download_then_post'));
 }
 
 async function onShare() {
@@ -288,6 +289,6 @@ async function onShare() {
   try {
     await navigator.share({ files: [C.file], text: POST_TEXT });
   } catch (err) {
-    if (err?.name !== 'AbortError') setNote('Sharing did not work here. Use Download instead.');
+    if (err?.name !== 'AbortError') setNote(t('share_failed'));
   }
 }

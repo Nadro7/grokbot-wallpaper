@@ -4,7 +4,7 @@
 // else /api/state (the journal server); with neither, only the bot and its sky, no cards. ?demo=1 animates the bundled
 // demo state instead. At most 30 frames per second.
 
-const STATUS = {
+const STATUS_EN = {
   working: { text: 'working', c: 'var(--working)' },
   waiting_user: { text: 'waiting for you', c: 'var(--waiting)' },
   error: { text: 'error', c: 'var(--error)' },
@@ -12,6 +12,18 @@ const STATUS = {
   done: { text: 'done', c: 'var(--done)' },
   idle: { text: 'resting', c: 'var(--idle)' },
 };
+const STATUS_FR = {
+  working: { text: 'au travail', c: 'var(--working)' },
+  waiting_user: { text: 'en attente de vous', c: 'var(--waiting)' },
+  error: { text: 'erreur', c: 'var(--error)' },
+  stuck: { text: 'bloqué', c: 'var(--stuck)' },
+  done: { text: 'terminé', c: 'var(--done)' },
+  idle: { text: 'au repos', c: 'var(--idle)' },
+};
+let STATUS = STATUS_EN;
+const ASKS_EN = { waiting_user: 'needs your reply', stuck: 'stuck, take a look', error: 'error' };
+const ASKS_FR = { waiting_user: 'attend votre réponse', stuck: 'bloqué, jetez un œil', error: 'erreur' };
+let ASKS = ASKS_EN;
 const ORDER = ['waiting_user', 'error', 'stuck', 'working', 'done', 'idle'];
 const SHAPES = ['sphere', 'rounded_square', 'pill', 'triangle', 'pentagon', 'hexagon', 'star4', 'star6', 'clover', 'rounded_cube', 'cone', 'trio', 'cloud', 'bubble', 'flower', 'drop'];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -122,6 +134,31 @@ addEventListener('pointerleave', () => { lastMove = -1e9; });
 // ?look=0.2,0.15 pins a pretend cursor (fractions of the screen) and holds the pose still, for screenshots;
 // &blink=66 also holds the blink at that moment (ms)
 const params = new URLSearchParams(location.search), pinned = params.get('look');
+function resolveLang(search, hash) {
+  const from = (raw) => {
+    const m = /(?:^|[?&#])lang=(fr|en)\b/i.exec(String(raw || ''));
+    return m ? m[1].toLowerCase() : null;
+  };
+  return from(search) || from(hash) || (/^fr\b/i.test(navigator.language || '') ? 'fr' : 'en');
+}
+const LANG = resolveLang(location.search, location.hash);
+try { document.documentElement.lang = LANG; } catch { /* */ }
+STATUS = LANG === 'fr' ? STATUS_FR : STATUS_EN;
+ASKS = LANG === 'fr' ? ASKS_FR : ASKS_EN;
+function faceT(en, fr) { return LANG === 'fr' ? fr : en; }
+function applyFaceChrome() {
+  const all = document.querySelector('.crew__head span');
+  if (all) all.textContent = faceT('All bots', 'Tous les bots');
+  const meter = document.querySelector('.meter');
+  if (meter) meter.title = faceT('Weekly usage limit', 'Limite d’usage hebdomadaire');
+  const mlab = document.querySelector('.meter__label');
+  if (mlab) {
+    const b = mlab.querySelector('b');
+    mlab.childNodes[0].textContent = faceT('limit ', 'limite ');
+  }
+}
+
+
 const heldBlink = pinned && params.has('blink') ? Number(params.get('blink')) : null;
 if (pinned) {
   const [fx, fy] = pinned.split(',').map(Number);
@@ -282,9 +319,9 @@ function avatar(bot, look) {
 // ---------- the live cards: the team, a card for each bot that needs the user, everyone as 3D avatars ----------
 const $ = (id) => document.getElementById(id);
 const stack = $('w-stack'), team = $('team'), grid = $('bot-grid'), needs = $('bot-needs'), tip = $('tip');
+applyFaceChrome();
 const NEEDS = ['waiting_user', 'error', 'stuck'], NEEDS_FIRST = ['error', 'waiting_user', 'stuck'];
 const TONE = { waiting_user: 'is-waiting', stuck: 'is-waiting', error: 'is-error' };
-const ASKS = { waiting_user: 'needs your reply', stuck: 'stuck, take a look', error: 'error' };
 let looks = {}, state = null, byId = {}, crew = '';
 
 function statusOf(b) { return STATUS[b.effective_status || b.status] ? (b.effective_status || b.status) : 'idle'; }
@@ -300,9 +337,9 @@ function render(st) {
   countTo($('n-waiting'), waiting);
   countTo($('n-error'), counts.error);
   countTo($('bot-total'), bots.length);
-  $('l-working').textContent = 'working';
-  $('l-waiting').textContent = 'waiting';
-  $('l-error').textContent = counts.error === 1 ? 'error' : 'errors';
+  $('l-working').textContent = faceT('working', 'au travail');
+  $('l-waiting').textContent = faceT('waiting', 'en attente');
+  $('l-error').textContent = counts.error === 1 ? faceT('error', 'erreur') : faceT('errors', 'erreurs');
   $('row-waiting').classList.toggle('is-zero', !waiting);
   $('row-error').classList.toggle('is-zero', !counts.error);
   team.classList.toggle('is-working', counts.working > 0);           // green while anyone works, graphite at rest
@@ -383,7 +420,8 @@ stack.addEventListener('pointerover', (e) => {
   if (!av || drag) return;
   const b = byId[av.dataset.id];
   if (!b) return;
-  tip.innerHTML = `<b>${esc(b.name)}</b><span>${STATUS[statusOf(b)].text}</span>${b.step ? `<p>${esc(b.step)}</p>` : ''}`;
+  const pend = formatPendingTip(b.pending);
+  tip.innerHTML = `<b>${esc(b.name)}</b><span>${STATUS[statusOf(b)].text}</span>${b.step ? `<p>${esc(b.step)}</p>` : ''}${pend ? `<p>${esc(pend)}</p>` : ''}`;
   tip.hidden = false;
   const r = av.getBoundingClientRect(), t = tip.getBoundingClientRect();
   const x = Math.min(innerWidth - t.width - 8, Math.max(8, r.left + r.width / 2 - t.width / 2));
@@ -673,7 +711,41 @@ function botId(name) {
     .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/g, '');
   return SLUG_ALIASES[s] || s || `bot-${hash(String(name)).toString(36)}`;
 }
-function applyLine(text, time) {                         // a status, roster, looks or usage line; false if none
+function nonNegInt(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.min(9999, Math.floor(n));
+}
+function parsePending(raw) {                               // {"pending":{bot,tasks,mails,next_due,note?}}
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const name = typeof raw.bot === 'string' ? raw.bot.trim().slice(0, 80) : '';
+  if (!name) return null;
+  const tasks = nonNegInt(raw.tasks), mails = nonNegInt(raw.mails);
+  let next_due = null;
+  if (typeof raw.next_due === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.next_due.trim());
+    if (m) next_due = `${m[1]}-${m[2]}-${m[3]}`;
+  }
+  const note = typeof raw.note === 'string' ? raw.note.trim().slice(0, 60) : '';
+  if (tasks == null && mails == null && !next_due && !note) return null;
+  return { bot: name, tasks: tasks ?? 0, mails: mails ?? 0, next_due, ...(note ? { note } : {}) };
+}
+function formatPendingTip(p) {                             // EN by default; FR when the browser is French
+  if (!p) return '';
+  const fr = LANG === 'fr';
+  const L = fr
+    ? { tasks: 'Tâches', mails: 'Mails en attente', due: 'Prochaine échéance', sep: ' : ' }
+    : { tasks: 'Tasks', mails: 'Pending mail', due: 'Next due', sep: ': ' };
+  const parts = [];
+  if (p.tasks != null) parts.push(`${L.tasks}${L.sep}${p.tasks}`);
+  if (p.mails != null) parts.push(`${L.mails}${L.sep}${p.mails}`);
+  if (p.next_due) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.next_due);
+    parts.push(`${L.due}${L.sep}${m ? `${m[3]}/${m[2]}` : p.next_due}`);
+  }
+  return parts.join(' · ');
+}
+function applyLine(text, time) {                         // a status, roster, looks, usage or pending line; false if none
   if (typeof text !== 'string' || text.length > 4096) return false;
   let ev;
   try { ev = JSON.parse(text); } catch { return false; }
@@ -692,6 +764,13 @@ function applyLine(text, time) {                         // a status, roster, lo
       const name = String(raw ?? '').trim().slice(0, 60), id = name && botId(name);
       if (id && !state.bots[id]) state.bots[id] = { id, name, step: '', status: 'idle', effective_status: 'idle', last_event: at };
     }
+    return true;
+  }
+  if (ev?.pending && typeof ev.pending === 'object' && !Array.isArray(ev.pending)) {
+    const p = parsePending(ev.pending);
+    if (!p) return false;
+    const id = botId(p.bot), b = state.bots[id] || (state.bots[id] = { id, name: p.bot, step: '', status: 'idle', effective_status: 'idle', last_event: at });
+    b.pending = p;
     return true;
   }
   const name = String(ev?.bot ?? '').trim().slice(0, 60);

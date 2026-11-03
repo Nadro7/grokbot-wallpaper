@@ -3,6 +3,7 @@
 // Without either (static preview) it runs on web/data/demo-state.json with a local simulation.
 import { initScene, renderScene, zoom, focusBot } from './scene/scene.js';
 import { initSound, sfx } from './audio/sound.js';
+import { resolveLang, setLang } from './lib/i18n.js';
 
 const POLL_MS = 1000;
 const view = { currentFloor: null, selectedBot: null };
@@ -14,6 +15,7 @@ let demoTimer = null;
 //   &floor=<id>   pin the floor (default: the floor with the most bots)
 //   &cycle=<sec>  go to the next floor every <sec> seconds through the normal elevator switch
 const params = new URLSearchParams(location.search);
+setLang(resolveLang(location.search, location.hash));
 const WALLPAPER = params.get('mode') === 'wallpaper';
 if (WALLPAPER) document.documentElement.classList.add('wallpaper');
 

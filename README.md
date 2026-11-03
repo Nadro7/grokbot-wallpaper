@@ -17,8 +17,10 @@ Each bot runs one `curl` on its own box whenever its status changes and sends a 
 ### Setup
 
 1. Copy the block from `PROMPT.md` and paste it into your Grok Bot once. It makes the topic (`gbw-` plus 22 random letters and digits), saves the posting rule in the shared memory of all your bots, posts the roster and a look for each bot, and sets up the daily and 2-hourly routines.
-2. The bot replies with two links. Open the dashboard in a browser: `https://bodila51.github.io/grokbot-wallpaper/#<topic>`.
-3. For the wallpaper, use the second link as a web wallpaper in Lively (Windows, `lively/README.md`) or the Mac app (`mac/README.md`): `https://bodila51.github.io/grokbot-wallpaper/face/#<topic>`.
+2. The bot replies with two links. Open the dashboard in a browser: `https://<user>.github.io/grokbot-wallpaper/#<topic>`.
+3. For the wallpaper, use the second link as a web wallpaper in Lively (Windows, `lively/README.md`) or the Mac app (`mac/README.md`): `https://<user>.github.io/grokbot-wallpaper/face/#<topic>`.
+
+Language: the UI is French or English. It defaults to French when the browser language starts with `fr`, otherwise English. Force a language with `&lang=fr` or `&lang=en` in the query or after the hash, e.g. `…/office/?lang=fr#<topic>` or `…/face/?lang=en#<topic>`.
 
 ### The line formats
 
@@ -31,12 +33,14 @@ One JSON object per POST, at most 4 KB.
 {"type":"usage","total_used_pct":37,"resets_at":"2026-11-01T18:00:00+02:00","bots":{"X Writer":4.1}}
 {"chat":{"X Writer":"grokbot://app/v1/agent?id=<bot id>"}}
 {"routines":{"bot":"X Writer","items":[{"name":"Morning thread","schedule":"daily 09:00","next_run":"2026-11-02T09:00:00+02:00"}]}}
+{"pending":{"bot":"X Writer","tasks":3,"mails":2,"next_due":"2026-11-05","note":"optional, max 60 chars"}}
 ```
 
 - **status**, posted on every status change of any bot. `bot` is the exact name, `status` is one of `working`, `idle`, `waiting_user`, `error`, `done`, `step` is what the bot does, at most 80 characters. `group` (optional) is the bot's team: each team gets its own floor of the office.
 - **roster**: the exact names of all your bots, so quiet bots show up too. Re-posted every morning.
 - **looks**: one look per bot. `shape` is one of `sphere`, `rounded_cube`, `pill`, `triangle`, `cone`, `pentagon`, `hexagon`, `star4`, `star6`, `clover`, `rounded_square`, `trio`. `accessory` is one of `none`, `glasses`, `stem`, `antenna`, `bow`. `color` is `#RRGGBB`. Details in `docs/AVATARS.md`. Re-posted every morning.
 - **usage**: total used in percent, when it resets, and per bot. Fields the bot does not know are left out. Posted every 2 hours.
+- **pending**: neutral counters only (task count, waiting mail count, next due date as `YYYY-MM-DD`, optional short `note`). The last line per bot is kept. On hover in the office and the wallpaper, a tip shows e.g. `Tasks: 3 · Pending mail: 2 · Next due: 05/11` (French labels when the browser language is French). Do not put personal content, secrets, people names or private notes in this line — only the counters.
 
 ### Privacy
 
