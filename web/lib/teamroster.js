@@ -1,5 +1,5 @@
-// Static fallback roster for when the live channel is empty (ntfy keeps ~12 hours).
-// Face and the 3D office both load ../data/team-roster.json (published at /data/ on Pages).
+// Optional helper to load a local team JSON (roster, chat, looks, groups).
+// The public site no longer ships data/team-roster.json; the live channel is the only list.
 export async function fetchTeamRoster(url = '../data/team-roster.json') {
   try {
     const res = await fetch(url, { cache: 'no-store' });

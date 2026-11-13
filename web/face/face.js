@@ -6,7 +6,6 @@
 
 import { parsePending, formatPendingTip, resolveItemUrl } from '../lib/pending.js';
 import { openAppLink, copyText, isAllowedAppUrl } from '../lib/openlink.js';
-import { fetchTeamRoster, rosterMessages } from '../lib/teamroster.js';
 
 const STATUS_EN = {
   working: { text: 'working', c: 'var(--working)' },
@@ -900,13 +899,8 @@ async function connectFeed() {
   }));
   rows.sort((a, b) => a.time - b.time);
   for (const m of rows) if (fresh(m)) applyLine(m.message, m.time);
-  // Live mailboxes keep ~12 hours. If nothing is left (and nothing was remembered), show the published team roster
-  // so the cards are not stuck at « All bots 0 ». Live lines still win as soon as one arrives.
-  if (!Object.keys(state.bots || {}).length) {
-    const data = await fetchTeamRoster('../data/team-roster.json');
-    const at = Date.now() / 1000;
-    for (const rec of rosterMessages(data)) applyLine(JSON.stringify(rec), at);
-  }
+  // Live mailboxes keep ~12 hours. If nothing is left (and nothing was remembered), the cards stay empty:
+  // the public site no longer ships a fallback team list.
   settleQuiet();
   remember();
   render(state);

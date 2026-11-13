@@ -24,7 +24,6 @@
 import { StateStore, botIdFor } from './lib/state.js';
 import { FEED_BASE, feedFromLink } from './lib/feedbase.js';
 import { parsePending } from './lib/pending.js';
-import { fetchTeamRoster, rosterMessages } from './lib/teamroster.js';
 
 const RELAY = 'https://relay.0xcodila.com', NTFY = 'https://ntfy.sh';
 const MAX_LINE = 4096, KEEP = 600, TICK_MS = 30e3, DAY_MS = 24 * 3600e3, PING_MS = 60e3;
@@ -66,11 +65,6 @@ export async function connectFeed({ topic, servers }, onState) {
   }));
   lines = lines.filter(fresh).sort((a, b) => a.time - b.time);   // stable: lines of one second keep the mailbox's order
   for (const l of lines) ingest(l, true);
-  if (!store.bots.size) {
-    const data = await fetchTeamRoster('../data/team-roster.json');
-    const time = Date.now() / 1000;
-    for (const rec of rosterMessages(data)) ingest({ message: JSON.stringify(rec), time }, true);
-  }
   for (const s of sources) s.lastId = lines.findLast((l) => l.src === s.tag)?.id ?? null;
   save();
   if (usual) try { localStorage.removeItem(oldKey); } catch { /* private mode */ }
