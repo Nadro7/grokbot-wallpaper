@@ -1,0 +1,38 @@
+{
+  "as_of": "2026-11-13",
+  "comment": "Liste de secours de l'équipe de Nadro. Utilisée uniquement si le canal live est vide (rétention 12 h). Pas de secret, pas de sujet de canal. Les tâches en direct reviendront quand la republication du matin sera relancée.",
+  "roster": [
+    "Jarvis · General Manager",
+    "Le Geek · Code, prompt",
+    "Pam · Réceptionniste",
+    "Harvey Specter · Avocat commis d'office",
+    "Chopper · Medecin",
+    "Zizou · N°10",
+    "Nami",
+    "Hitch",
+    "Paul Emploi · Carrière management",
+    "Oggy · Dénicheur d'occaz",
+    "Démarches & Pièces",
+    "Santé & Préjudice",
+    "Assurance & Véhicule",
+    "Sécu & Arrêts",
+    "Apprentissage"
+  ],
+  "chat": {
+    "Jarvis · General Manager": "grokbot://app/v1/agent?id=b46b68f7-dce0-48df-90ed-c534bfbba726",
+    "Le Geek · Code, prompt": "grokbot://app/v1/agent?id=badc3f44-03dc-46a6-ab37-c61ef057c60f",
+    "Pam · Réceptionniste": "grokbot://app/v1/agent?id=abbf8d57-163c-4082-8d62-c57d01c2abae",
+    "Harvey Specter · Avocat commis d'office": "grokbot://app/v1/agent?id=323fae9e-9596-4f67-b7e2-3a1fdb281319",
+    "Chopper · Medecin": "grokbot://app/v1/agent?id=9c333f63-d659-462b-95b9-333e15a9dfa6",
+    "Zizou · N°10": "grokbot://app/v1/agent?id=fe109103-21d1-4e4f-bc02-1dabc5a5c272",
+    "Nami": "grokbot://app/v1/agent?id=b364e519-9a38-41b8-bd7c-42afec802f2e",
+    "Hitch": "grokbot://app/v1/agent?id=25e65123-d126-4e05-aafa-9be28dc6da6b",
+    "Paul Emploi · Carrière management": "grokbot://app/v1/agent?id=cdece83d-ecc7-408b-a349-cd6d52fe86e9",
+    "Oggy · Dénicheur d'occaz": "grokbot://app/v1/agent?id=9daf176d-5a97-4919-9159-7ac3ae2868fa",
+    "Démarches & Pièces": "grokbot://app/v1/agent?id=d666a6f5-bd3d-4700-a32f-cf7f4eae2802",
+    "Santé & Préjudice": "grokbot://app/v1/agent?id=a9232aa9-c759-4046-bb66-c0b58e25d315",
+    "Assurance & Véhicule": "grokbot://app/v1/agent?id=b12fc90b-306f-467d-a985-57ce854f48c1",
+    "Sécu & Arrêts": "grokbot://app/v1/agent?id=9da08925-1837-4c06-bf35-1a82de15607c",
+    "Apprentissage": "grokbot://app/v1/agent?id=e00dee6a-5253-4f00-a974-4d942f837aef"
+  }
+}

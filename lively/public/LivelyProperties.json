@@ -2,12 +2,12 @@
   "botColor": {
     "type": "dropdown",
     "value": 0,
-    "text": "Bot color",
-    "items": ["White", "Black"]
+    "text": "Couleur du bot",
+    "items": ["Blanc", "Noir"]
   },
   "feed": {
     "type": "textbox",
     "value": "",
-    "text": "Your bots channel (optional)"
+    "text": "Canal de tes bots (optionnel)"
   }
 }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Grok Bot</title>
@@ -11,7 +11,7 @@
 // them), and on the wallpaper page face.js takes every later change itself.
 // It leaves only once the site answers: at Windows startup Lively often runs before the network, and a redirect then
 // would leave the browser's error page as the wallpaper.
-const FACE = 'https://bodila51.github.io/grokbot-wallpaper/face/';
+const FACE = 'https://nadro7.github.io/grokbot-wallpaper/face/';
 const PROBE = new URL('../assets/face/grain.png', FACE).href;   // a small image the wallpaper itself loads
 
 const h = new Date().getHours();                        // until then, roughly the wallpaper's own sky
@@ -23,7 +23,9 @@ function go() {
   if (left || !settled || !online) return;
   left = true;
   const feed = String(got.feed ?? '').trim();
-  location.replace(FACE + (Number(got.botColor) === 1 ? '?bot=black' : '') +
+  const q = ['lang=fr'];
+  if (Number(got.botColor) === 1) q.push('bot=black');
+  location.replace(FACE + '?' + q.join('&') +
     (feed ? `#${encodeURIComponent(feed).replace(/%40/g, '@')}` : ''));
 }
 window.livelyPropertyListener = (name, value) => {

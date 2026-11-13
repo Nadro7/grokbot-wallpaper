@@ -147,7 +147,7 @@ const DICT = {
   },
 };
 
-let _lang = 'en';
+let _lang = 'fr';
 
 /** From ?lang= / hash &lang= / navigator. Default FR when the browser is French. */
 export function resolveLang(search = '', hash = '') {
@@ -162,7 +162,8 @@ export function resolveLang(search = '', hash = '') {
     } catch { /* ignore */ }
     return null;
   };
-  return fromParam(search) || fromParam(hash) || (/^fr\b/i.test((typeof navigator !== 'undefined' && navigator.language) || '') ? 'fr' : 'en');
+  // Nadro's fork: French by default (Lively's WebView often reports en-US).
+  return fromParam(search) || fromParam(hash) || 'fr';
 }
 
 export function setLang(code) {

@@ -6,6 +6,7 @@
 
 import { parsePending, formatPendingTip, resolveItemUrl } from '../lib/pending.js';
 import { openAppLink, copyText, isAllowedAppUrl } from '../lib/openlink.js';
+import { fetchTeamRoster, rosterMessages } from '../lib/teamroster.js';
 
 const STATUS_EN = {
   working: { text: 'working', c: 'var(--working)' },
@@ -142,7 +143,8 @@ function resolveLang(search, hash) {
     const m = /(?:^|[?&#])lang=(fr|en)\b/i.exec(String(raw || ''));
     return m ? m[1].toLowerCase() : null;
   };
-  return from(search) || from(hash) || (/^fr\b/i.test(navigator.language || '') ? 'fr' : 'en');
+  // This fork is Nadro's: French by default. Lively's WebView often reports en-US even on a French PC.
+  return from(search) || from(hash) || 'fr';
 }
 const LANG = resolveLang(location.search, location.hash);
 try { document.documentElement.lang = LANG; } catch { /* */ }
@@ -898,6 +900,13 @@ async function connectFeed() {
   }));
   rows.sort((a, b) => a.time - b.time);
   for (const m of rows) if (fresh(m)) applyLine(m.message, m.time);
+  // Live mailboxes keep ~12 hours. If nothing is left (and nothing was remembered), show the published team roster
+  // so the cards are not stuck at « All bots 0 ». Live lines still win as soon as one arrives.
+  if (!Object.keys(state.bots || {}).length) {
+    const data = await fetchTeamRoster('../data/team-roster.json');
+    const at = Date.now() / 1000;
+    for (const rec of rosterMessages(data)) applyLine(JSON.stringify(rec), at);
+  }
   settleQuiet();
   remember();
   render(state);
